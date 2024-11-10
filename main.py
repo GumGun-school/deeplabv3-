@@ -66,7 +66,7 @@ def get_argparser():
                         help='batch size (default: 16)')
     parser.add_argument("--val_batch_size", type=int, default=4,
                         help='batch size for validation (default: 4)')
-    parser.add_argument("--crop_size", type=int, default=513)
+    parser.add_argument("--crop_size", type=int, default=4)
 
     parser.add_argument("--ckpt", default=None, type=str,
                         help="restore from checkpoint")
@@ -182,7 +182,7 @@ def get_dataset(opts):
 
 
 
-def validate(opts, model, loader, device, metrics, cluster, ret_samples_ids=None):
+def validate(opts, model, loader, device, metrics, ret_samples_ids=None):
     print("validating")
     """Do validation and return specified samples"""
     metrics.reset()
@@ -197,7 +197,6 @@ def validate(opts, model, loader, device, metrics, cluster, ret_samples_ids=None
     
     with torch.no_grad():
         for i, (images, labels) in tqdm(enumerate(loader)):
-            #labels = clusterize2(labels, cluster);
             
             images = images.to(device, dtype=torch.float32)
             labels = labels.to(device, dtype=torch.long)
@@ -221,9 +220,9 @@ def validate(opts, model, loader, device, metrics, cluster, ret_samples_ids=None
                     target = loader.dataset.decode_target(target).astype(np.uint8)
                     pred = loader.dataset.decode_target(pred).astype(np.uint8)
 
-                    Image.fromarray(image).save(os.path.join(opts.save_val_results_path,'%d_image.png' % img_id))
-                    Image.fromarray(target).save(os.path.join(opts.save_val_results_path,'%d_target.png' % img_id))
-                    Image.fromarray(pred).save(os.path.join(opts.save_val_results_path,'%d_pred.png' % img_id))
+#                    Image.fromarray(image).save(os.path.join(opts.save_val_results_path,'%d_image.png' % img_id))
+#                    Image.fromarray(target).save(os.path.join(opts.save_val_results_path,'%d_target.png' % img_id))
+#                    Image.fromarray(pred).save(os.path.join(opts.save_val_results_path,'%d_pred.png' % img_id))
 
                     fig = plt.figure()
                     plt.imshow(image)
@@ -276,9 +275,10 @@ def infer(opts, model, loader, device, metrics, ret_samples_ids=None):
                     Image.fromarray(predfull).save(os.path.join(opts.save_val_results_path,'%d_predfull.png' % img_id))
                     Image.fromarray(image).save(os.path.join(opts.save_val_results_path,'%d_image.png' % img_id))
                     print(type(image))
-                    for category in range(0, 21):
-                        predlocal = (pred==category)# + (pred==1) + (pred == 9)  #merge road, sidewalk, terrain
-                        Image.fromarray(predlocal).save(os.path.join(opts.save_val_results_path,f'%d_pred{category}.png' % img_id))
+                    
+#                    for category in range(0, 21):
+#                        predlocal = (pred==category)# + (pred==1) + (pred == 9)  #merge road, sidewalk, terrain
+#                        Image.fromarray(predlocal).save(os.path.join(opts.save_val_results_path,f'%d_pred{category}.png' % img_id))
                     fig = plt.figure()
                     plt.imshow(image)
                     plt.axis('off')
@@ -291,73 +291,74 @@ def infer(opts, model, loader, device, metrics, ret_samples_ids=None):
                     img_id += 1
     return ret_samples
 
-def clusterize2(labels, categories):
-    
-    batch_size = labels.shape[0]
-    col_number = labels.shape[1]
-    row_number = labels.shape[2]
-    mod_labels = np.empty((batch_size, col_number, row_number))
-    
-    print("clusterizing: begin")
-    for batch in range(0, batch_size):
-        for cols in range(0, col_number):
-            for rows in range(0, row_number):
-                holder = labels[batch][cols][rows]
-                if holder > 19:
-                    holder = 19
-                mod_labels[batch][cols][rows] = categories[holder]
-    print('clusterizing: end')
 
-    return torch.tensor(mod_labels)
-    
+#def clusterize2(labels, categories):
+#    
+#    batch_size = labels.shape[0]
+#    col_number = labels.shape[1]
+#    row_number = labels.shape[2]
+#    mod_labels = np.empty((batch_size, col_number, row_number))
+#    
+#    print("clusterizing: begin")
+#    for batch in range(0, batch_size):
+#        for cols in range(0, col_number):
+#            for rows in range(0, row_number):
+#                holder = labels[batch][cols][rows]
+#                if holder > 19:
+#                    holder = 19
+#                mod_labels[batch][cols][rows] = categories[holder]
+#    print('clusterizing: end')
+#
+#    return torch.tensor(mod_labels)
+#    
 
-def clusterize(images):
-    print(type(images))
-    print("len:\t\t", len(images))
-    img_copy = images[0][1].copy()
-    print(img_copy)
-    print("0,0", img_copy[0,0])
-    img_copy[0,0]=0
-    print("0,0", img_copy[0,0])
-    print(type(images[0][1][0]))
-    print(type(images[0][1][0,0]))
-    
-    for _ in range(0,12):
-        print("a = ", img_copy)
-    
-    
-    cols = images[0][1].shape[0]
-    rows = images[0][1].shape[1]
-#    print(type(images[0][1][0][0]));
-#    print(images[0][1][0][0]);
-    line = [0]*cols;
-    arr = np.array(line)
-    img_copy1 = images[0][1].copy()
-    
-    if (img_copy==img_copy1).all():
-        print("diff");
-    else:
-        print("igual");
-#    for a in range(0, cols):
-#        print(a);
-#        images[0][1][a][0]=sentinel
-#        for b in range(0, rows):
-#            images[0][1][a][b]=sentinel
-    print("\n\npre\n\n")
-    for _ in range(0,12):
-        print("a = ", images[0][1])
-    
-    print("len:\t\t", len(images))
-    holder0=images[0][1][0,0]
-    print(holder0)
-    print(images[0][1])
-    print("\n\npost\n\n")
-    holder1=images[0][1][0,0]
-    print(holder1)
-    print(images[0][1])
-    if holder0 != holder1:
-        print("\n\n\nfalse\n\n\n")
-    formated_img = Image.fromarray(images[0][1].astype(np.uint8)).save("test_image.png")#os.path.join(opts.save_val_results_path,'%d_image.png' % img_id))
+#def clusterize(images):
+#    print(type(images))
+#    print("len:\t\t", len(images))
+#    img_copy = images[0][1].copy()
+#    print(img_copy)
+#    print("0,0", img_copy[0,0])
+#    img_copy[0,0]=0
+#    print("0,0", img_copy[0,0])
+#    print(type(images[0][1][0]))
+#    print(type(images[0][1][0,0]))
+#    
+#    for _ in range(0,12):
+#        print("a = ", img_copy)
+#    
+#    
+#    cols = images[0][1].shape[0]
+#    rows = images[0][1].shape[1]
+##    print(type(images[0][1][0][0]));
+##    print(images[0][1][0][0]);
+#    line = [0]*cols;
+#    arr = np.array(line)
+#    img_copy1 = images[0][1].copy()
+#    
+#    if (img_copy==img_copy1).all():
+#        print("diff");
+#    else:
+#        print("igual");
+##    for a in range(0, cols):
+##        print(a);
+##        images[0][1][a][0]=sentinel
+##        for b in range(0, rows):
+##            images[0][1][a][b]=sentinel
+#    print("\n\npre\n\n")
+#    for _ in range(0,12):
+#        print("a = ", images[0][1])
+#    
+#    print("len:\t\t", len(images))
+#    holder0=images[0][1][0,0]
+#    print(holder0)
+#    print(images[0][1])
+#    print("\n\npost\n\n")
+#    holder1=images[0][1][0,0]
+#    print(holder1)
+#    print(images[0][1])
+#    if holder0 != holder1:
+#        print("\n\n\nfalse\n\n\n")
+#    formated_img = Image.fromarray(images[0][1].astype(np.uint8)).save("test_image.png")#os.path.join(opts.save_val_results_path,'%d_image.png' % img_id))
 
 def ptype(arg):
     print(type(arg))
@@ -376,7 +377,7 @@ def main():
     if opts.dataset.lower() == 'voc':
         opts.num_classes = 21
     elif opts.dataset.lower() == 'cityscapes':
-        opts.num_classes = 19
+        opts.num_classes = 19 #TODO:read cat
 
     # Setup visualization
     vis = Visualizer(port=opts.vis_port,
@@ -499,20 +500,6 @@ def main():
 
         return
 
-    cluster= np.zeros(20)
-
-#    for a in range(0, 20):
-#        cluster[a]=((a+3)%20)
-
-    cluster[0] = 1
-    cluster[1] = 1
-    cluster[11]= 2
-    cluster[12]= 2
-    cluster[13]= 2
-    cluster[14]= 2
-    cluster[15]= 2
-    cluster[16]= 2
-    
     interval_loss = 0
 #    number = 0
     while True: #cur_itrs < opts.total_itrs:
@@ -549,18 +536,16 @@ def main():
 #            print('clusterizing ctrl')
 #
 #            save_image(tensor1[0]/20, f"labels/test_image_{number}_swap.png")
-
-            save_image(images[0][0].float(), f"labels/test_image_0_swap.png")
-            save_image(images[0][1].float(), f"labels/test_image_1_swap.png")
-            save_image(images[0][2].float(), f"labels/test_image_2_swap.png")
-            save_image(images[0].float(), f"labels/test_mix.png")
-            save_image(labels[0].float()/20, f"labels/test_label_2_swap.png")
-            asa = assert1
+#
+#            save_image(images[0][0].float(), f"labels/test_image_0_swap.png")
+#            save_image(images[0][1].float(), f"labels/test_image_1_swap.png")
+#            save_image(images[0][2].float(), f"labels/test_image_2_swap.png")
+#            save_image(images[0].float(), f"labels/test_mix.png")
+#            save_image(labels[0].float()/20, f"labels/test_label_2_swap.png")
             
             images = images.to(device, dtype=torch.float32)
             labels = labels.to(device, dtype=torch.long)
             #debug_info(images)
-            
 
             optimizer.zero_grad()
             outputs = model(images)
@@ -585,7 +570,7 @@ def main():
                 print("validation...")
                 model.eval()
                 val_score, ret_samples = validate(
-                    opts=opts, model=model, loader=val_loader, device=device, metrics=metrics, cluster=cluster, ret_samples_ids=vis_sample_id)
+                    opts=opts, model=model, loader=val_loader, device=device, metrics=metrics, ret_samples_ids=vis_sample_id)
                 print(metrics.to_str(val_score))
                 if val_score['Mean IoU'] > best_score:  # save best model
                     best_score = val_score['Mean IoU']
